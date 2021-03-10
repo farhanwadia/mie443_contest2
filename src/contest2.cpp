@@ -2,6 +2,10 @@
 #include <navigation.h>
 #include <robot_pose.h>
 #include <imagePipeline.h>
+#include <chrono>
+
+#define RAD2DEG(rad) ((rad)*180./M_PI)
+#define DEG2RAD(deg) ((deg)*M_PI/180.)
 
 
 float dist(float x1, float y1, float x2, float y2){
@@ -127,12 +131,17 @@ int main(int argc, char** argv) {
     float adjMat[10][10];
     float nav_coords[10][3];
     int startBox, currentNode = 0;
-    float xx, yy, zz, TSPDist;
+    float xx, yy, zz, dz, offset = 0.35, timeout = 10, TSPDist;
     bool nav_success;
     std::vector<int> TSPTour;
 
+    //Contest count down timer
+    std::chrono::time_point<std::chrono::system_clock> start;
+    start = std::chrono::system_clock::now();
+    uint64_t secondsElapsed = 0;
+
     //Fill the nav_coords array
-    fillNavCoords(nav_coords, &boxes, 0.5);
+    fillNavCoords(nav_coords, &boxes, offset);
     for(int i =0; i < 10; i++){
         ROS_INFO("Box %d: (%.3f, %.3f, %.3f)", i, boxes.coords[i][0], boxes.coords[i][1], boxes.coords[i][2]);
         ROS_INFO("Nav %d: (%.3f, %.3f, %.3f) \n", i, nav_coords[i][0], nav_coords[i][1], nav_coords[i][2]);
@@ -153,16 +162,12 @@ int main(int argc, char** argv) {
     }
     
     // Execute strategy.
-    while(ros::ok()) {
+    while(ros::ok() && secondsElapsed <= 480) {
         ros::spinOnce();
         /***YOUR CODE HERE***/
         // Use: boxes.coords
         // Use: robotPose.x, robotPose.y, robotPose.phi
         imagePipeline.getTemplateID(boxes);
-
-        //To-do: Be adaptable to if the turtlebot cannot go to the exact location/orientation!!
-        //Either figure out a prioi if a point is feasible, and if not, project it into a feasible region
-        //Or brute force nearby values, former is more efficient
         
         //Travel to the nodes and then back to the start
         if (currentNode <= 10){ 
@@ -178,20 +183,45 @@ int main(int argc, char** argv) {
                 zz = 0;
             }
             ROS_INFO("Navigating to node %d. (%.3f, %.3f, %.3f)", currentNode, xx, yy, zz);
-            nav_success = Navigation::moveToGoal(xx, yy, zz);
+            nav_success = Navigation::moveToGoal(xx, yy, zz, timeout);
+
+            //Try varying the angle to be 30, -30, 60, -60 from centre if navigation was unsuccesful
+            dz = DEG2RAD(30);     
+            while(!nav_success && fabs(dz) <=DEG2RAD(61) && currentNode < 10){
+                // Recalculate xx, yy, zz, to incorporate angle offst dz
+                xx = boxes.coords[TSPTour[currentNode]][0] + offset*cosf(boxes.coords[TSPTour[currentNode]][2] + dz);
+                yy = boxes.coords[TSPTour[currentNode]][1] + offset*sinf(boxes.coords[TSPTour[currentNode]][2] + dz);
+                zz = minus2Pi(boxes.coords[TSPTour[currentNode]][2] + dz + M_PI);
+                //Try navigating
+                ROS_INFO("Navigating to node %d with offset %.1f. (%.3f, %.3f, %.3f)", currentNode, RAD2DEG(dz), xx, yy, zz);
+                nav_success = Navigation::moveToGoal(xx, yy, zz, timeout);
+                if(nav_success){
+                    break;
+                }
+                //Change dz if navigation still unsuccesful
+                if(dz > 0){
+                    dz = -dz;
+                }
+                else{
+                    dz = -dz;
+                    dz = dz + DEG2RAD(30);
+                }
+            }
+            if (fabs(dz) > DEG2RAD(61)){
+                ROS_INFO("COULD NOT GET TO NODE %d. Nav Status: %d", currentNode, nav_success);
+            }
+            
             ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
             currentNode ++;
         }
         
+        //To-do: Output to file
         
 
 
 
 
-
-
-
-
+        secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
         ros::Duration(0.01).sleep();
     }
     return 0;
