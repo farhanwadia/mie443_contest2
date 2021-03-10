@@ -25,7 +25,6 @@ float minus2Pi(float angle){
     return angle;
 }
 
-
 void fillNavCoords(float nav_coords[10][3], Boxes* pBoxes, float offset){
     //This function fills in the nav_coords array using boxes.coords
     //New x,y,z are calculated such that the turtlebot faces in front of the box at offset distance
@@ -69,7 +68,7 @@ float bruteForceTSP(float nav_coords[10][3], float adjMat[10][10], int source, s
     std::vector<int> nodes;
     int num_nodes = 10;
 
-    // append the other nodes to the vector
+    // Append the other nodes to the vector
     for(int i=0; i<num_nodes; i++){
         if(i != source){
             nodes.push_back(i);
@@ -78,7 +77,7 @@ float bruteForceTSP(float nav_coords[10][3], float adjMat[10][10], int source, s
     int n = nodes.size();
     float shortestPathWgt = std::numeric_limits<float>::infinity();
 
-    // generate permutations and track the minimum
+    // Generate permutations and track the minimum
     while(next_permutation(nodes.begin(),nodes.end())){
         float currentPathWgt = 0;
         std::vector<int> currentTour;
@@ -86,16 +85,16 @@ float bruteForceTSP(float nav_coords[10][3], float adjMat[10][10], int source, s
         int j = source;
         currentTour.push_back(source);
         
-        //Calculate distance and visiting order for current tour path
+        // Calculate distance and visiting order for current tour path
         for (int i = 0; i < n; i++)
         {
             currentPathWgt += adjMat[j][nodes[i]];
             j = nodes[i];
             currentTour.push_back(j);
         }
-        currentPathWgt += adjMat[j][source];
+        currentPathWgt += adjMat[j][source]; //add the distance from last node back to start
 
-        //Update shortest path and the node order if our current tour is smaller than the previous minimum
+        // Update shortest path and the node order if our current tour is smaller than the previous minimum
         if (currentPathWgt < shortestPathWgt){
             shortestPathWgt = currentPathWgt;
             TSPTour = currentTour;
@@ -127,12 +126,13 @@ int main(int argc, char** argv) {
     
     float adjMat[10][10];
     float nav_coords[10][3];
-    int startBox;
-    float TSPDist;
+    int startBox, currentNode = 0;
+    float xx, yy, zz, TSPDist;
+    bool nav_success;
     std::vector<int> TSPTour;
 
     //Fill the nav_coords array
-    fillNavCoords(nav_coords, &boxes, 0.6);
+    fillNavCoords(nav_coords, &boxes, 0.5);
     for(int i =0; i < 10; i++){
         ROS_INFO("Box %d: (%.3f, %.3f, %.3f)", i, boxes.coords[i][0], boxes.coords[i][1], boxes.coords[i][2]);
         ROS_INFO("Nav %d: (%.3f, %.3f, %.3f) \n", i, nav_coords[i][0], nav_coords[i][1], nav_coords[i][2]);
@@ -145,7 +145,7 @@ int main(int argc, char** argv) {
     startBox = findClosestBoxAtStart(nav_coords);
     ROS_INFO("Start Box: %d", startBox);
 
-    //Brute Force TSP
+    //Brute Force TSP. TSP
     TSPDist = bruteForceTSP(nav_coords, adjMat, startBox, TSPTour);
     ROS_INFO("TSP Distance: %.5f \n Printing Nodes:", TSPDist);
     for(int i=0; i<TSPTour.size(); i++){
@@ -159,6 +159,39 @@ int main(int argc, char** argv) {
         // Use: boxes.coords
         // Use: robotPose.x, robotPose.y, robotPose.phi
         imagePipeline.getTemplateID(boxes);
+
+        //To-do: Be adaptable to if the turtlebot cannot go to the exact location/orientation!!
+        //Either figure out a prioi if a point is feasible, and if not, project it into a feasible region
+        //Or brute force nearby values, former is more efficient
+        
+        //Travel to the nodes and then back to the start
+        if (currentNode <= 10){ 
+            if (currentNode < 10){
+                xx = nav_coords[TSPTour[currentNode]][0];
+                yy = nav_coords[TSPTour[currentNode]][1];
+                zz = nav_coords[TSPTour[currentNode]][2];
+            }
+            else {
+                //Return to start after exploring all nodes
+                xx = 0;
+                yy = 0;
+                zz = 0;
+            }
+            ROS_INFO("Navigating to node %d. (%.3f, %.3f, %.3f)", currentNode, xx, yy, zz);
+            nav_success = Navigation::moveToGoal(xx, yy, zz);
+            ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
+            currentNode ++;
+        }
+        
+        
+
+
+
+
+
+
+
+
         ros::Duration(0.01).sleep();
     }
     return 0;
