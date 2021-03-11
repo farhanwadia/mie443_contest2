@@ -104,6 +104,10 @@ float bruteForceTSP(float nav_coords[10][3], float adjMat[10][10], int source, s
             TSPTour = currentTour;
         }
     }
+    ROS_INFO("TSP Distance: %.5f \n Printing Node Order:", shortestPathWgt);
+    for(int i=0; i<TSPTour.size(); i++){
+        ROS_INFO("%d", TSPTour[i]);
+    }
     return shortestPathWgt;
 }
 
@@ -120,19 +124,19 @@ int main(int argc, char** argv) {
         std::cout << "ERROR: could not load coords or templates" << std::endl;
         return -1;
     }
-    for(int i = 0; i < boxes.coords.size(); ++i) {
+/*     for(int i = 0; i < boxes.coords.size(); ++i) {
         std::cout << "Box coordinates: " << std::endl;
         std::cout << i << " x: " << boxes.coords[i][0] << " y: " << boxes.coords[i][1] << " z: " 
                   << boxes.coords[i][2] << std::endl;
-    }
+    } */
     // Initialize image objectand subscriber.
     ImagePipeline imagePipeline(n);
     
     float adjMat[10][10];
     float nav_coords[10][3];
     int startBox, currentNode = 0;
-    float xx, yy, zz, dz, offset = 0.35, timeout = 10, TSPDist;
-    bool nav_success;
+    float xx, yy, zz, dz, offset = 0.4, timeout = 10, TSPDist;
+    bool nav_success, valid_plan;
     std::vector<int> TSPTour;
 
     //Contest count down timer
@@ -154,14 +158,11 @@ int main(int argc, char** argv) {
     startBox = findClosestBoxAtStart(nav_coords);
     ROS_INFO("Start Box: %d", startBox);
 
-    //Brute Force TSP. TSP
+    //Brute Force TSP. TSPTour is the path corresponding to the 10 node TSP cycle
     TSPDist = bruteForceTSP(nav_coords, adjMat, startBox, TSPTour);
-    ROS_INFO("TSP Distance: %.5f \n Printing Nodes:", TSPDist);
-    for(int i=0; i<TSPTour.size(); i++){
-        ROS_INFO("%d", TSPTour[i]);
-    }
-    
+
     // Execute strategy.
+    secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
     while(ros::ok() && secondsElapsed <= 480) {
         ros::spinOnce();
         /***YOUR CODE HERE***/
@@ -182,20 +183,21 @@ int main(int argc, char** argv) {
                 yy = 0;
                 zz = 0;
             }
-            ROS_INFO("Navigating to node %d. (%.3f, %.3f, %.3f)", currentNode, xx, yy, zz);
-            nav_success = Navigation::moveToGoal(xx, yy, zz, timeout);
+
+            ROS_INFO("Testing TSP node %d (original %d). (%.3f, %.3f, %.3f)", currentNode, TSPTour[currentNode], xx, yy, zz);            
+            valid_plan = Navigation::checkPlan(n, robotPose.x, robotPose.y, robotPose.phi, xx, yy, zz);
 
             //Try varying the angle to be 30, -30, 60, -60 from centre if navigation was unsuccesful
             dz = DEG2RAD(30);     
-            while(!nav_success && fabs(dz) <=DEG2RAD(61) && currentNode < 10){
-                // Recalculate xx, yy, zz, to incorporate angle offst dz
+            while(!valid_plan && fabs(dz) <=DEG2RAD(61) && currentNode < 10){
+                // Recalculate xx, yy, zz, to incorporate angle offset dz
                 xx = boxes.coords[TSPTour[currentNode]][0] + offset*cosf(boxes.coords[TSPTour[currentNode]][2] + dz);
                 yy = boxes.coords[TSPTour[currentNode]][1] + offset*sinf(boxes.coords[TSPTour[currentNode]][2] + dz);
                 zz = minus2Pi(boxes.coords[TSPTour[currentNode]][2] + dz + M_PI);
-                //Try navigating
-                ROS_INFO("Navigating to node %d with offset %.1f. (%.3f, %.3f, %.3f)", currentNode, RAD2DEG(dz), xx, yy, zz);
-                nav_success = Navigation::moveToGoal(xx, yy, zz, timeout);
-                if(nav_success){
+                //Try new plan
+                ROS_INFO("Testing TSP node %d (original %d) with offset %.1f. (%.3f, %.3f, %.3f)", currentNode, TSPTour[currentNode], RAD2DEG(dz), xx, yy, zz);
+                valid_plan = Navigation::checkPlan(n, robotPose.x, robotPose.y, robotPose.phi, xx, yy, zz);
+                if(valid_plan){
                     break;
                 }
                 //Change dz if navigation still unsuccesful
@@ -207,16 +209,23 @@ int main(int argc, char** argv) {
                     dz = dz + DEG2RAD(30);
                 }
             }
-            if (fabs(dz) > DEG2RAD(61)){
-                ROS_INFO("COULD NOT GET TO NODE %d. Nav Status: %d", currentNode, nav_success);
+            if (valid_plan){
+                nav_success = Navigation::moveToGoal(xx, yy, zz);
+                ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
+            }
+            if (fabs(dz) > DEG2RAD(61) || !valid_plan){
+                ROS_INFO("COULD NOT FIND ANY PATH TO NODE %d", currentNode);
             }
             
-            ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
+            ROS_INFO("Elapsed time %ld", (long)secondsElapsed);
             currentNode ++;
         }
         
         //To-do: Output to file
-        
+        //File should contain the tag ID (1-15, perhaps -1 for the blank one), the location of the tag, as well as if it is a duplicate
+        // Location should be given as index followed by (x,y, angle)
+        //http://cplusplus.com/doc/tutorial/files/
+        //Discovery Order; Tag ID; Location Index; Location Coordinates; Is Duplicate;
 
 
 
