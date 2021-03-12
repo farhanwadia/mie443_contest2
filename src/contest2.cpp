@@ -269,7 +269,11 @@ int main(int argc, char** argv) {
             if (valid_plan){
                 nav_success = Navigation::moveToGoal(xx, yy, zz);
                 ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
-                if(!nav_success){
+                if(nav_success){
+                    //Check what the image is and write to file here
+
+                }
+                else{
                     ROS_INFO("PLAN VALID BUT NAVIGATION FAILED");
                 }
             }
