@@ -223,6 +223,9 @@ int main(int argc, char** argv) {
     //Brute Force TSP. TSPTour is the path corresponding to the 10 node TSP cycle
     TSPDist = bruteForceTSP(nav_coords, adjMat, startBox, TSPTour);
 
+    //File to write image tag
+    std::ofstream BoxIDs("BoxIDs.txt");
+
     // Execute strategy.
     while(ros::ok() && secondsElapsed <= 480) {
         ros::spinOnce();
@@ -277,6 +280,8 @@ int main(int argc, char** argv) {
                 ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
                 if(nav_success){
                     //Check what the image is and write to file here
+                    auto templateID = imagePipeline.getTemplateID(boxes);
+                    BoxIDs << templateID << std::endl;
 
                 }
                 else{
