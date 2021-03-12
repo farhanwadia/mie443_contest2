@@ -1,1 +1,0 @@
-# mie443_contest2
