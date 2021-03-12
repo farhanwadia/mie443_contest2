@@ -3,12 +3,13 @@
 #include <robot_pose.h>
 #include <imagePipeline.h>
 #include <chrono>
+#include <nav_msgs/GetPlan.h>
 #include <iostream>
 #include <fstream>
 
+
 #define RAD2DEG(rad) ((rad)*180./M_PI)
 #define DEG2RAD(deg) ((deg)*M_PI/180.)
-
 
 float dist(float x1, float y1, float x2, float y2){
     //Calculates the Euclidean distance between two points (x1, y1), (x2, y2)
@@ -32,8 +33,8 @@ float minus2Pi(float angle){
 }
 
 void fillNavCoords(float nav_coords[10][3], Boxes* pBoxes, float offset){
-    //This function fills in the nav_coords array using boxes.coords
-    //New x,y,z are calculated such that the turtlebot faces in front of the box at offset distance
+    //Fills in the nav_coords array using boxes.coords
+    //New x,y,z are calculated such that the turtlebot faces directly in front of the box at offset distance away
     Boxes boxes;
     boxes = *pBoxes;
     for(int i=0; i < boxes.coords.size(); i++){
@@ -54,6 +55,7 @@ void fillAdjacencyMatrix(float adjMat[10][10], float nav_coords[10][3]){
 }
 
 int findClosestBoxAtStart(float nav_coords[10][3]){
+    // Returns the index of the box closest to the start location (0, 0)
     float minD = std::numeric_limits<float>::infinity();
     float d;
     int argmin;
@@ -69,12 +71,12 @@ int findClosestBoxAtStart(float nav_coords[10][3]){
 }
 
 float bruteForceTSP(float nav_coords[10][3], float adjMat[10][10], int source, std::vector<int> &TSPTour){
-    // Returns the distance of the optimal TSP tour and modifies vector TSPTour to provide the nodes in the order of the tour path
-    // Adapted from https://iq.opengenus.org/travelling-salesman-problem-brute-force/
+    //Returns the distance of the optimal TSP tour and modifies vector TSPTour to provide the nodes in the order of the tour path
+    //Adapted from https://iq.opengenus.org/travelling-salesman-problem-brute-force/
     std::vector<int> nodes;
     int num_nodes = 10;
 
-    // Append the other nodes to the vector
+    //Append the other nodes to the vector
     for(int i=0; i<num_nodes; i++){
         if(i != source){
             nodes.push_back(i);
@@ -83,30 +85,94 @@ float bruteForceTSP(float nav_coords[10][3], float adjMat[10][10], int source, s
     int n = nodes.size();
     float shortestPathWgt = std::numeric_limits<float>::infinity();
 
-    // Generate permutations and track the minimum
-    while(next_permutation(nodes.begin(),nodes.end())){
+    //Generate permutations and track the minimum weight cycle
+    while(next_permutation(nodes.begin(), nodes.end())){
         float currentPathWgt = 0;
         std::vector<int> currentTour;
 
         int j = source;
         currentTour.push_back(source);
         
-        // Calculate distance and visiting order for current tour path
+        //Calculate distance and visiting order for current tour path
         for (int i = 0; i < n; i++)
         {
             currentPathWgt += adjMat[j][nodes[i]];
             j = nodes[i];
             currentTour.push_back(j);
         }
-        currentPathWgt += adjMat[j][source]; //add the distance from last node back to start
+        currentPathWgt += adjMat[j][source]; //add the distance from last node back to source
 
-        // Update shortest path and the node order if our current tour is smaller than the previous minimum
+        //Update shortest path and the node order if the current tour is smaller than the previous minimum
         if (currentPathWgt < shortestPathWgt){
             shortestPathWgt = currentPathWgt;
             TSPTour = currentTour;
         }
     }
+    ROS_INFO("TSP Distance: %.5f \n Printing Node Order:", shortestPathWgt);
+    for(int i=0; i<TSPTour.size(); i++){
+        ROS_INFO("%d", TSPTour[i]);
+    }
     return shortestPathWgt;
+}
+
+bool checkPlan(ros::NodeHandle& nh, float xStart, float yStart, float phiStart, float xGoal, float yGoal, float phiGoal){
+	//Returns true if there is a valid path from (xStart, yStart, phiStart) to (xGoal, yGoal, phiGoal)
+    //Adapted from https://answers.ros.org/question/264369/move_base-make_plan-service-is-returning-an-empty-path/
+    
+    bool callExecuted, validPlan;
+
+    //Set start position
+    geometry_msgs::PoseStamped start;
+    geometry_msgs::Quaternion phi1 = tf::createQuaternionMsgFromYaw(phiStart);
+    start.header.seq = 0;
+    start.header.stamp = ros::Time::now();
+    start.header.frame_id = "map";
+    start.pose.position.x = xStart;
+    start.pose.position.y = yStart;
+    start.pose.position.z = 0.0;
+    start.pose.orientation.x = 0.0;
+    start.pose.orientation.y = 0.0;
+    start.pose.orientation.z = phi1.z;
+    start.pose.orientation.w = phi1.w;
+
+    //Set goal position
+    geometry_msgs::PoseStamped goal;
+    geometry_msgs::Quaternion phi2 = tf::createQuaternionMsgFromYaw(phiGoal);
+    goal.header.seq = 0;
+    goal.header.stamp = ros::Time::now();
+    goal.header.frame_id = "map";
+    goal.pose.position.x = xGoal;
+    goal.pose.position.y = yGoal;
+    goal.pose.position.z = 0.0;
+    goal.pose.orientation.x = 0.0;
+    goal.pose.orientation.y = 0.0;
+    goal.pose.orientation.z = phi2.z;
+    goal.pose.orientation.w = phi2.w;
+    
+    //Set up the service and call it
+    ros::ServiceClient check_path = nh.serviceClient<nav_msgs::GetPlan>("move_base/NavfnROS/make_plan");
+    nav_msgs::GetPlan srv;
+    srv.request.start = start;
+    srv.request.goal = goal;
+    srv.request.tolerance = 0.0;
+    callExecuted = check_path.call(srv);
+    
+    if(callExecuted){
+        ROS_INFO("Call to check plan sent");
+    }
+    else{
+        ROS_INFO("Call to check plan NOT sent");
+    }
+
+    if(srv.response.plan.poses.size() > 0){
+        validPlan = true;
+        ROS_INFO("Successful plan of size %ld", srv.response.plan.poses.size());
+    }
+    else{
+        validPlan = false;
+        ROS_INFO("Unsuccessful plan");
+    }
+    return validPlan;
 }
 
 int main(int argc, char** argv) {
@@ -122,19 +188,14 @@ int main(int argc, char** argv) {
         std::cout << "ERROR: could not load coords or templates" << std::endl;
         return -1;
     }
-    for(int i = 0; i < boxes.coords.size(); ++i) {
-        std::cout << "Box coordinates: " << std::endl;
-        std::cout << i << " x: " << boxes.coords[i][0] << " y: " << boxes.coords[i][1] << " z: " 
-                  << boxes.coords[i][2] << std::endl;
-    }
     // Initialize image objectand subscriber.
     ImagePipeline imagePipeline(n);
     
     float adjMat[10][10];
     float nav_coords[10][3];
     int startBox, currentNode = 0;
-    float xx, yy, zz, dz, offset = 0.35, timeout = 10, TSPDist;
-    bool nav_success;
+    float xx, yy, zz, dz, offset = 0.4, TSPDist;
+    bool nav_success, valid_plan;
     std::vector<int> TSPTour;
 
     // Initialize output file to write image IDs to
@@ -159,13 +220,9 @@ int main(int argc, char** argv) {
     startBox = findClosestBoxAtStart(nav_coords);
     ROS_INFO("Start Box: %d", startBox);
 
-    //Brute Force TSP. TSP
+    //Brute Force TSP. TSPTour is the path corresponding to the 10 node TSP cycle
     TSPDist = bruteForceTSP(nav_coords, adjMat, startBox, TSPTour);
-    ROS_INFO("TSP Distance: %.5f \n Printing Nodes:", TSPDist);
-    for(int i=0; i<TSPTour.size(); i++){
-        ROS_INFO("%d", TSPTour[i]);
-    }
-    
+
     // Execute strategy.
     while(ros::ok() && secondsElapsed <= 480) {
         ros::spinOnce();
@@ -187,20 +244,21 @@ int main(int argc, char** argv) {
                 yy = 0;
                 zz = 0;
             }
-            ROS_INFO("Navigating to node %d. (%.3f, %.3f, %.3f)", currentNode, xx, yy, zz);
-            nav_success = Navigation::moveToGoal(xx, yy, zz, timeout);
 
-            //Try varying the angle to be 30, -30, 60, -60 from centre if navigation was unsuccesful
-            dz = DEG2RAD(30);     
-            while(!nav_success && fabs(dz) <=DEG2RAD(61) && currentNode < 10){
-                // Recalculate xx, yy, zz, to incorporate angle offst dz
+            ROS_INFO("Testing TSP node %d (original %d). (%.3f, %.3f, %.3f)", currentNode, TSPTour[currentNode], xx, yy, zz);            
+            valid_plan = checkPlan(n, robotPose.x, robotPose.y, robotPose.phi, xx, yy, zz);
+
+            //Try varying the angle to be +/- 20, 30, 40, 50, 60 deg from centre if navigation was unsuccesful
+            dz = DEG2RAD(20);     
+            while(!valid_plan && fabs(dz) <=DEG2RAD(61) && currentNode < 10){
+                // Recalculate xx, yy, zz, to incorporate angle offset dz
                 xx = boxes.coords[TSPTour[currentNode]][0] + offset*cosf(boxes.coords[TSPTour[currentNode]][2] + dz);
                 yy = boxes.coords[TSPTour[currentNode]][1] + offset*sinf(boxes.coords[TSPTour[currentNode]][2] + dz);
                 zz = minus2Pi(boxes.coords[TSPTour[currentNode]][2] + dz + M_PI);
-                //Try navigating
-                ROS_INFO("Navigating to node %d with offset %.1f. (%.3f, %.3f, %.3f)", currentNode, RAD2DEG(dz), xx, yy, zz);
-                nav_success = Navigation::moveToGoal(xx, yy, zz, timeout);
-                if(nav_success){
+                //Try new plan
+                ROS_INFO("Testing TSP node %d (original %d) with offset %.1f. (%.3f, %.3f, %.3f)", currentNode, TSPTour[currentNode], RAD2DEG(dz), xx, yy, zz);
+                valid_plan = checkPlan(n, robotPose.x, robotPose.y, robotPose.phi, xx, yy, zz);
+                if(valid_plan){
                     break;
                 }
                 //Change dz if navigation still unsuccesful
@@ -209,23 +267,45 @@ int main(int argc, char** argv) {
                 }
                 else{
                     dz = -dz;
-                    dz = dz + DEG2RAD(30);
+                    dz = dz + DEG2RAD(10);
                 }
             }
-            if (fabs(dz) > DEG2RAD(61)){
-                ROS_INFO("COULD NOT GET TO NODE %d. Nav Status: %d", currentNode, nav_success);
+
+            //Navigate if the path plan is valid
+            if (valid_plan){
+                nav_success = Navigation::moveToGoal(xx, yy, zz);
+                ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
+                if(nav_success){
+                    //Check what the image is and write to file here
+
+                }
+                else{
+                    ROS_INFO("PLAN VALID BUT NAVIGATION FAILED");
+                }
+            }
+            if (fabs(dz) > DEG2RAD(61) || !valid_plan){
+                ROS_INFO("COULD NOT FIND ANY PATH TO NODE %d", currentNode);
             }
             
-            ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
+            ROS_INFO("Elapsed time %ld", (long)secondsElapsed);
             currentNode ++;
         }
+        else{
+            //Explored all 10 nodes and returned to start
+            break;
+        }
         
+        //To-do: Output to file
+        //File should contain the tag ID (1-15, perhaps -1 for the blank one), the location of the tag, as well as if it is a duplicate
+        // Location should be given as index followed by (x,y, angle)
+        //http://cplusplus.com/doc/tutorial/files/
+        //Discovery Order; Tag ID; Location Index; Location Coordinates; Is Duplicate;
+
 
         // Write index and tag to output file. Note: ind and tag current placeholders
         // output << "Box: " << ind << " Tag: " << tag << std::endl;
     	// output << "Located at: (" << boxes.coords[ind-1][0] << ", " << boxes.coords[ind-1][1] << ", " << boxes.coords[ind-1][2] <<  ")" << std::endl;
     		
-        
 
 
 

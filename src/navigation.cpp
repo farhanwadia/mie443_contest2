@@ -3,7 +3,7 @@
 #include <move_base_msgs/MoveBaseAction.h>
 #include <tf/transform_datatypes.h>
 
-bool Navigation::moveToGoal(float xGoal, float yGoal, float phiGoal, float timeout){
+bool Navigation::moveToGoal(float xGoal, float yGoal, float phiGoal){
 	// Set up and wait for actionClient.
     actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> ac("move_base", true);
     while(!ac.waitForServer(ros::Duration(5.0))){
@@ -24,7 +24,7 @@ bool Navigation::moveToGoal(float xGoal, float yGoal, float phiGoal, float timeo
     ROS_INFO("Sending goal location ...");
 	// Send goal and wait for response.
     ac.sendGoal(goal);
-    ac.waitForResult(ros::Duration(timeout));
+    ac.waitForResult();
     if(ac.getState() == actionlib::SimpleClientGoalState::SUCCEEDED){
         ROS_INFO("You have reached the destination");
         return true;
