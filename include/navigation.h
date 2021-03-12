@@ -1,4 +1,5 @@
 #pragma once
+#include <ros/ros.h>
 
 class Navigation {
 	public:
