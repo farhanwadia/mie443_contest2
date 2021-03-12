@@ -4,6 +4,9 @@
 #include <imagePipeline.h>
 #include <chrono>
 #include <nav_msgs/GetPlan.h>
+#include <iostream>
+#include <fstream>
+
 
 #define RAD2DEG(rad) ((rad)*180./M_PI)
 #define DEG2RAD(deg) ((deg)*M_PI/180.)
@@ -195,6 +198,9 @@ int main(int argc, char** argv) {
     bool nav_success, valid_plan;
     std::vector<int> TSPTour;
 
+    // Initialize output file to write image IDs to
+    std::ofstream output("Group18_BoxIDs.txt");
+
     //Contest count down timer
     std::chrono::time_point<std::chrono::system_clock> start;
     start = std::chrono::system_clock::now();
@@ -294,6 +300,12 @@ int main(int argc, char** argv) {
         // Location should be given as index followed by (x,y, angle)
         //http://cplusplus.com/doc/tutorial/files/
         //Discovery Order; Tag ID; Location Index; Location Coordinates; Is Duplicate;
+
+
+        // Write index and tag to output file. Note: ind and tag current placeholders
+        // output << "Box: " << ind << " Tag: " << tag << std::endl;
+    	// output << "Located at: (" << boxes.coords[ind-1][0] << ", " << boxes.coords[ind-1][1] << ", " << boxes.coords[ind-1][2] <<  ")" << std::endl;
+    		
 
 
 
