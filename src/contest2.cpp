@@ -230,6 +230,7 @@ int main(int argc, char** argv) {
     //Brute Force TSP. TSPTour is the path corresponding to the 10 node TSP cycle
     TSPDist = bruteForceTSP(nav_coords, adjMat, startBox, TSPTour);
 
+
     //Get Timestamp for output file name
     time_t t = time(0);   // get time now
     struct tm * now = localtime( & t );
@@ -245,12 +246,18 @@ int main(int argc, char** argv) {
     
 
     //Execute strategy.
+
+    //File to write image tag
+    std::ofstream BoxIDs("BoxIDs.txt");
+
+    // Execute strategy.
+
     while(ros::ok() && secondsElapsed <= 480) {
         ros::spinOnce();
         /***YOUR CODE HERE***/
         // Use: boxes.coords
         // Use: robotPose.x, robotPose.y, robotPose.phi
-        imagePipeline.getTemplateID(boxes);
+        //imagePipeline.getTemplateID(boxes);
         
         //Travel to the nodes and then back to the start
         if (currentNode <= 10){ 
@@ -298,6 +305,7 @@ int main(int argc, char** argv) {
                 ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
                 if(nav_success){
                     //Check what the image is and write to file here
+
                     int template_id;
 
                     //Append template_id to a vector called IDHistory
@@ -316,6 +324,10 @@ int main(int argc, char** argv) {
                     //"Located at: (" << boxes.coords[i][0] << ", " << boxes.coords[i][1] << ", " << boxes.coords[i][2] <<  ")"
                     
  
+                    auto best = imagePipeline.getTemplateID(boxes);
+                    BoxIDs << best << std::endl;
+
+
                 }
                 else{
                     ROS_INFO("PLAN VALID BUT NAVIGATION FAILED");
