@@ -280,8 +280,8 @@ int main(int argc, char** argv) {
                 ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
                 if(nav_success){
                     //Check what the image is and write to file here
-                    auto templateID = imagePipeline.getTemplateID(boxes);
-                    BoxIDs << templateID << std::endl;
+                    auto best = imagePipeline.getTemplateID(boxes);
+                    BoxIDs << best << std::endl;
 
                 }
                 else{

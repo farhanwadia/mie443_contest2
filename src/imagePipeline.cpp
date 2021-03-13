@@ -219,6 +219,53 @@ int ImagePipeline::getTemplateID(Boxes& boxes) {
     // For displaying the image
     cv::imshow("view", img);
     cv::waitKey(1000);
-    std::cout  << "best id:  " << template_id << std::endl;
-    return template_id;
+    switch(template_id){
+                case 0 : string best = "tag_1.jpg";
+                break;
+
+                case 1 : string best = "tag_2.jpg";
+                break;
+
+                case 2 : string best = "tag_3.jpg";
+                break;
+
+                case 3 : string best = "tag_4.jpg";
+                break;
+
+                case 4 : string best = "tag_5.jpg";
+                break;
+
+                case 5 : string best = "tag_6.jpg";
+                break;
+
+                case 6 : string best = "tag_7.jpg";
+                break;
+
+                case 7 : string best = "tag_8.jpg";
+                break;
+
+                case 8 : string best = "tag_9.jpg";
+                break;
+
+                case 9 : string best = "tag_10.jpg";
+                break;
+
+                case 10 : string best = "tag_11.jpg";
+                break;
+
+                case 11 : string best = "tag_12.jpg";
+                break;
+
+                case 12 : string best = "tag_13.jpg";
+                break;
+
+                case 13 : string best = "tag_14.jpg";
+                break;
+
+                case 14 : string best = "tag_15.jpg";
+                break;
+
+            }
+    std::cout  << "best tag:  " << best << std::endl;
+    return best;
 }
