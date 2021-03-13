@@ -6,7 +6,8 @@
 #include <nav_msgs/GetPlan.h>
 #include <iostream>
 #include <fstream>
-
+#include <vector>
+#include <algorithm>
 
 #define RAD2DEG(rad) ((rad)*180./M_PI)
 #define DEG2RAD(deg) ((deg)*M_PI/180.)
@@ -175,6 +176,15 @@ bool checkPlan(ros::NodeHandle& nh, float xStart, float yStart, float phiStart, 
     return validPlan;
 }
 
+//Check if template_id already exists in the IDHistory
+bool ifDuplicate(std::vector<int> &IDHistory, int template_id){
+    bool duplicate = false;
+    if(std::find(IDHistory.begin(), IDHistory.end(), template_id) !=IDHistory.end()){
+        duplicate = true;
+    }
+    return duplicate;
+}
+
 int main(int argc, char** argv) {
     // Setup ROS.
     ros::init(argc, argv, "contest2");
@@ -198,9 +208,6 @@ int main(int argc, char** argv) {
     bool nav_success, valid_plan;
     std::vector<int> TSPTour;
 
-    // Initialize output file to write image IDs to
-    std::ofstream output("Group18_BoxIDs.txt");
-
     //Contest count down timer
     std::chrono::time_point<std::chrono::system_clock> start;
     start = std::chrono::system_clock::now();
@@ -223,7 +230,21 @@ int main(int argc, char** argv) {
     //Brute Force TSP. TSPTour is the path corresponding to the 10 node TSP cycle
     TSPDist = bruteForceTSP(nav_coords, adjMat, startBox, TSPTour);
 
-    // Execute strategy.
+    //Get Timestamp for output file name
+    time_t t = time(0);   // get time now
+    struct tm * now = localtime( & t );
+
+    char timestamp [80];
+    strftime (timestamp,80,"%Y-%m-%d.",now);
+
+    std::ofstream output(timestamp);
+    
+    //OLD - Initialize output file to write image IDs to
+    //std::ofstream output("Group18_BoxIDs.txt");
+
+    
+
+    //Execute strategy.
     while(ros::ok() && secondsElapsed <= 480) {
         ros::spinOnce();
         /***YOUR CODE HERE***/
@@ -277,7 +298,24 @@ int main(int argc, char** argv) {
                 ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
                 if(nav_success){
                     //Check what the image is and write to file here
+                    int template_id;
 
+                    //Append template_id to a vector called IDHistory
+                    std::vector<int> IDHistory;
+                    IDHistory.push_back(template_id);
+                    ROS_INFO("Appended %i to IDHistory", template_id);
+
+                    //Check if new templateID is a duplicate of a previous one
+                
+
+                    //Write to output file 
+                    //Discovery Order; Tag ID; Location Coordinates; Is Duplicate;
+                    bool duplicate_check;
+                    duplicate_check = ifDuplicate(IDHistory, template_id);
+                    output << "Box: " << " Tag: " << template_id << duplicate_check << std::endl;
+                    //"Located at: (" << boxes.coords[i][0] << ", " << boxes.coords[i][1] << ", " << boxes.coords[i][2] <<  ")"
+                    
+ 
                 }
                 else{
                     ROS_INFO("PLAN VALID BUT NAVIGATION FAILED");
