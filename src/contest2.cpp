@@ -306,6 +306,7 @@ int main(int argc, char** argv) {
                 if(nav_success){
                     //Check what the image is and write to file here
 
+
                     int template_id;
 
                     //Append template_id to a vector called IDHistory
@@ -326,7 +327,10 @@ int main(int argc, char** argv) {
  
                     auto best = imagePipeline.getTemplateID(boxes);
                     BoxIDs << best << std::endl;
-
+          
+                    #Henry
+                    #auto template_id = imagePipeline.getTemplateID(boxes);
+                    #BoxIDs << template_id << std::endl;
 
                 }
                 else{
