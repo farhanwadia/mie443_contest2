@@ -35,29 +35,19 @@ double ImagePipeline::matchToTemplate(Mat img_object){
     detector->detectAndCompute(img, Mat(), keypoints_scene, descriptors_scene);
     
     //-- Step 3: Matching descriptor vectors using FLANN matcher
-    FlannBasedMatcher matcher;
-    std::vector< DMatch > matches;
-     try {
-        matcher.match( descriptors_object, descriptors_scene, matches);
-    } catch (Exception& e) {
-        ;
-    }
+    Ptr<DescriptorMatcher> matcher =
+    DescriptorMatcher::create(DescriptorMatcher::FLANNBASED);
+    std::vector< std::vector<DMatch> > knn_matches;
+    matcher->knnMatch( descriptors_object, descriptors_scene, knn_matches, 2 );
+    //-- Filter matches using the Lowe's ratio test
+    const float ratio_thresh = 0.75f;
 
-    double max_dist = 0; double min_dist = 100;
-
-    //-- Quick calculation of max and min distances between keypoints
-    for( int i = 0; i < descriptors_object.rows; i++ )
-    { double dist = matches[i].distance;
-    if( dist < min_dist ) min_dist = dist;
-    if( dist > max_dist ) max_dist = dist;
-    }
-
-    //-- Draw only "good" matches (i.e. whose distance is less than 3*min_dist )
-    std::vector< DMatch > good_matches;
-
-    for( int i = 0; i < descriptors_object.rows; i++ )
-    { if( matches[i].distance < 3*min_dist )
-        { good_matches.push_back( matches[i]); }
+    std::vector<DMatch> good_matches;
+    for (size_t i = 0; i < knn_matches.size(); i++) {
+        if (knn_matches[i][0].distance < ratio_thresh *
+        knn_matches[i][1].distance){
+            good_matches.push_back(knn_matches[i][0]);
+        }
     }
 
     /***
@@ -118,7 +108,7 @@ double ImagePipeline::matchToTemplate(Mat img_object){
         if(indicator >= 0) best_matches.push_back( good_matches[i]);
     }
     
-    drawMatches( img_object, keypoints_object, cropped_img, keypoints_scene,
+    drawMatches( img_object, keypoints_object, img, keypoints_scene,
                  best_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
                  std::vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
 
@@ -137,8 +127,9 @@ double ImagePipeline::matchToTemplate(Mat img_object){
      * One such heuristic is the absolute number of good_matches found.
      ***/
 
-
-    return (double)good_matches.size()*area_weight;
+    
+    //return (double)best_matches.size()*area_weight;
+    return (double)good_matches.size();
 }
 
 int ImagePipeline::getTemplateID(Boxes& boxes) {

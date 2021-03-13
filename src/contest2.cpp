@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
         /***YOUR CODE HERE***/
         // Use: boxes.coords
         // Use: robotPose.x, robotPose.y, robotPose.phi
-        imagePipeline.getTemplateID(boxes);
+        //imagePipeline.getTemplateID(boxes);
         
         //Travel to the nodes and then back to the start
         if (currentNode <= 10){ 
