@@ -279,6 +279,12 @@ int main(int argc, char** argv) {
                 nav_success = Navigation::moveToGoal(xx, yy, zz);
                 ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
                 if(nav_success){
+                    //Add wait time to ensure correct image capture
+                    ros::Duration(0.10).sleep();
+                    ros::spinOnce();
+                    ros::Duration(0.60).sleep();
+                    ros::spinOnce();
+                    
                     //Check what the image is and write to file here
                     auto template_id = imagePipeline.getTemplateID(boxes);
                     BoxIDs << template_id << std::endl;
