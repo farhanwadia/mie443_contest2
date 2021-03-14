@@ -319,7 +319,7 @@ int main(int argc, char** argv) {
                 ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
                 if(nav_success){
                     //Check what the image is and write to file here
-                    ros::Duration(0.01).sleep();
+                    ros::spinOnce();
                     template_id = imagePipeline.getTemplateID(boxes);
                     
                     ROS_INFO_STREAM("Match: " << tagIndexToString(template_id));
@@ -387,7 +387,7 @@ int main(int argc, char** argv) {
 
 
         secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
-        //ros::Duration(0.01).sleep();
+        ros::Duration(0.01).sleep();
     }
     return 0;
 }
