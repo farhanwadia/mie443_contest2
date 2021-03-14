@@ -8,6 +8,7 @@
 #include <fstream>
 #include <vector>
 #include <algorithm>
+#include <string>
 
 #define RAD2DEG(rad) ((rad)*180./M_PI)
 #define DEG2RAD(deg) ((deg)*M_PI/180.)
@@ -176,13 +177,24 @@ bool checkPlan(ros::NodeHandle& nh, float xStart, float yStart, float phiStart, 
     return validPlan;
 }
 
-//Check if template_id already exists in the IDHistory
-bool ifDuplicate(std::vector<int> &IDHistory, int template_id){
+bool isDuplicate(std::vector<int> &IDHistory, int template_id){
+    //Check if template_id already exists in the IDHistory
     bool duplicate = false;
     if(std::find(IDHistory.begin(), IDHistory.end(), template_id) !=IDHistory.end()){
         duplicate = true;
     }
     return duplicate;
+}
+
+std::string tagIndexToString(int idx){
+    std::string label = "tag_";
+    if(idx == -1){
+        label = label + "blank" + ".jpg";
+    }
+    else{
+        label = label + std::to_string(idx+1) + ".jpg";
+    }
+    return label;
 }
 
 int main(int argc, char** argv) {
@@ -198,15 +210,16 @@ int main(int argc, char** argv) {
         std::cout << "ERROR: could not load coords or templates" << std::endl;
         return -1;
     }
-    // Initialize image objectand subscriber.
+    // Initialize image object and subscriber.
     ImagePipeline imagePipeline(n);
-    
+
+
     float adjMat[10][10];
     float nav_coords[10][3];
-    int startBox, currentNode = 0;
+    int startBox, currentNode = 0, template_id;
     float xx, yy, zz, dz, offset = 0.4, TSPDist;
-    bool nav_success, valid_plan;
-    std::vector<int> TSPTour;
+    bool nav_success, valid_plan, duplicate_check = false;
+    std::vector<int> TSPTour, IDHistory;
 
     //Contest count down timer
     std::chrono::time_point<std::chrono::system_clock> start;
@@ -233,25 +246,26 @@ int main(int argc, char** argv) {
 
     //Get Timestamp for output file name
     time_t t = time(0);   // get time now
-    struct tm * now = localtime( & t );
+    struct tm * now = localtime(&t);
 
     char timestamp [80];
-    strftime (timestamp,80,"%Y-%m-%d.",now);
+    strftime (timestamp,80,"%Y-%m-%d.txt", now);
 
     std::ofstream output(timestamp);
     
     //OLD - Initialize output file to write image IDs to
     //std::ofstream output("Group18_BoxIDs.txt");
 
-    
 
     //Execute strategy.
 
     //File to write image tag
     std::ofstream BoxIDs("BoxIDs.txt");
 
-    // Execute strategy.
 
+    // Initialize image object and subscriber.
+    //ImagePipeline imagePipeline(n);
+    // Execute strategy.
     while(ros::ok() && secondsElapsed <= 480) {
         ros::spinOnce();
         /***YOUR CODE HERE***/
@@ -305,14 +319,26 @@ int main(int argc, char** argv) {
                 ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
                 if(nav_success){
                     //Check what the image is and write to file here
+                    ros::Duration(0.01).sleep();
+                    template_id = imagePipeline.getTemplateID(boxes);
+                    
+                    ROS_INFO_STREAM("Match: " << tagIndexToString(template_id));
+                    
+                    duplicate_check = isDuplicate(IDHistory, template_id);
 
+                    //Append template_id to a vector called IDHistory if not already there
+                    if (duplicate_check){
 
-                    int template_id;
-
-                    //Append template_id to a vector called IDHistory
-                    std::vector<int> IDHistory;
-                    IDHistory.push_back(template_id);
-                    ROS_INFO("Appended %i to IDHistory", template_id);
+                    }
+                    else{
+                        IDHistory.push_back(template_id);
+                        ROS_INFO("Appended %i to IDHistory", template_id);
+                    }
+                    
+                   
+                    
+                    
+                    
 
                     //Check if new templateID is a duplicate of a previous one
                 
@@ -320,17 +346,13 @@ int main(int argc, char** argv) {
                     //Write to output file 
                     //Discovery Order; Tag ID; Location Coordinates; Is Duplicate;
                     bool duplicate_check;
-                    duplicate_check = ifDuplicate(IDHistory, template_id);
+                    duplicate_check = isDuplicate(IDHistory, template_id);
                     output << "Box: " << " Tag: " << template_id << duplicate_check << std::endl;
                     //"Located at: (" << boxes.coords[i][0] << ", " << boxes.coords[i][1] << ", " << boxes.coords[i][2] <<  ")"
                     
  
-                    auto best = imagePipeline.getTemplateID(boxes);
-                    BoxIDs << best << std::endl;
-          
-                    #Henry
-                    #auto template_id = imagePipeline.getTemplateID(boxes);
-                    #BoxIDs << template_id << std::endl;
+                    //auto best = imagePipeline.getTemplateID(boxes);
+                    //BoxIDs << best << std::endl;
 
                 }
                 else{
@@ -365,7 +387,7 @@ int main(int argc, char** argv) {
 
 
         secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
-        ros::Duration(0.01).sleep();
+        //ros::Duration(0.01).sleep();
     }
     return 0;
 }
