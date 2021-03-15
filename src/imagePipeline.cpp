@@ -124,7 +124,7 @@ double ImagePipeline::matchToTemplate(Mat img_object){
     }
     double area = contourArea(contour);
     double area_weight = 1.0;
-    if (area >  600*400 || area < 10 * 10)
+    if (area >  1000*1000 || area < 5 * 5)
     {
         area_weight = 0.0;
     }

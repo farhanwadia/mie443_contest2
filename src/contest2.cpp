@@ -311,9 +311,7 @@ int main(int argc, char** argv) {
                     ros::spinOnce();
                     
                     //Check what the image is and write to file here
-
-
-                    int template_id;
+                    auto template_id = imagePipeline.getTemplateID(boxes);
 
                     //Append template_id to a vector called IDHistory
                     std::vector<int> IDHistory;
@@ -330,13 +328,6 @@ int main(int argc, char** argv) {
                     output << "Box: " << " Tag: " << template_id << duplicate_check << std::endl;
                     //"Located at: (" << boxes.coords[i][0] << ", " << boxes.coords[i][1] << ", " << boxes.coords[i][2] <<  ")"
                     
- 
-                    auto best = imagePipeline.getTemplateID(boxes);
-                    BoxIDs << best << std::endl;
-          
-                    #Henry
-                    #auto template_id = imagePipeline.getTemplateID(boxes);
-                    #BoxIDs << template_id << std::endl;
 
                 }
                 else{
