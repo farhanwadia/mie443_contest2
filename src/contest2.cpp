@@ -235,7 +235,7 @@ int main(int argc, char** argv) {
     char timestamp [150];
     strftime (timestamp, 150,"%Y-%m-%d %H-%M-%S", now);
     timeStr = std::string(timestamp);
-    filename = "/home/turtlebot/catkin_ws/src/mie443_contest2/Group 18 Output - " + timeStr + ".csv";
+    filename = "/mie443_contest2/Group 18 Output - " + timeStr + ".csv";
 
     //Write output file if it doesn't exist yet with headers
     std::ofstream output(filename);
