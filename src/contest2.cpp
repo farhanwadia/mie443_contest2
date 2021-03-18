@@ -232,8 +232,12 @@ int main(int argc, char** argv) {
     time_t t = time(0);   // get time now
     struct tm * now = localtime(&t);
 
-    char timestamp [80];
-    strftime (timestamp,80,"/home/turtlebot/catkin_ws/src/mie443_contest2/Group 18 Tags - %c",now);
+    char timestamp [150];
+    strftime (timestamp,150,"/home/turtlebot/catkin_ws/src/mie443_contest2/Group 18 Tags - %c",now);
+
+    //Write File if it doesn't exist yet
+    std::ofstream output(timestamp);
+    output << "Order_Visited" << "    " << "Box_ID" << "    " << "Tag_ID" << "    " << "Is_Duplicate" << "    " << "Location" << std::endl;
 
     //Write File if it doesn't exist yet
     std::ofstream output(timestamp);
@@ -254,15 +258,6 @@ int main(int argc, char** argv) {
 
     //Brute Force TSP. TSPTour is the path corresponding to the 10 node TSP cycle
     TSPDist = bruteForceTSP(nav_coords, adjMat, startBox, TSPTour);
-    
-    //OLD - Initialize output file to write image IDs to
-    //std::ofstream output("Group18_BoxIDs.txt");
-
-    //Execute strategy.
-
-    //File to write image tag
-    std::ofstream BoxIDs("BoxIDs.txt");
-
 
     // Initialize image object and subscriber.
     //ImagePipeline imagePipeline(n);
@@ -370,9 +365,8 @@ int main(int argc, char** argv) {
                     ////BoxIDs << best << std::endl;
 
                     duplicate_check = ifDuplicate(IDHistory, template_id);
-                    output << "Box: " << currentNode << " Tag: " << template_id << " Is Duplicate: " << duplicate_check 
-                    << " Located at: (" << boxes.coords[TSPTour[currentNode]][0] << ", " << boxes.coords[TSPTour[currentNode]][1] << ", " << boxes.coords[TSPTour[currentNode]][2] <<  ")"
-                    << std::endl;
+                    output << currentNode << "    " << TSPTour[currentNode] << "    " << template_id << "    " << duplicate_check << "    " 
+                    << "(" << boxes.coords[TSPTour[currentNode]][0] << ", " << boxes.coords[TSPTour[currentNode]][1] << ", " << boxes.coords[TSPTour[currentNode]][2] <<  ")" << std::endl
            
                 }
                 else{
