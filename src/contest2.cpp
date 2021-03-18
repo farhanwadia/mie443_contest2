@@ -239,7 +239,8 @@ int main(int argc, char** argv) {
 
     //Write output file if it doesn't exist yet with headers
     std::ofstream output(filename);
-    output << "\"Order Visited\"" << ", " << "\"Box ID\"" << ", " << "\"Tag File\"" << ", " << "\"Discovered as Duplicate\"" << ", " << "\"Location\"" << std::endl;
+    output << "\"Order Visited\"" << ", " << "\"Box ID\"" << ", " << "\"Tag File\"" << ", " 
+    << "\"Discovered as Duplicate\"" << ", " << "\"Location (x, y, angle)\"" << std::endl;
 
     //Fill the nav_coords array
     fillNavCoords(nav_coords, &boxes, offset);
