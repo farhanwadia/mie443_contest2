@@ -342,6 +342,7 @@ int main(int argc, char** argv) {
                 else{
                     if(currentNode < 10){
                         ROS_INFO("PLAN VALID BUT NAVIGATION FAILED");
+                        output << "\"" << currentNode+1 << "\", \"" << TSPTour[currentNode] << "\", \"" << "" << "\", \"" << "" << "\", \"" << "\"" << std::endl;
                     }
                 }
             }
