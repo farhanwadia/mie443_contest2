@@ -6,6 +6,8 @@
 #include <nav_msgs/GetPlan.h>
 #include <iostream>
 #include <fstream>
+#include <ctime>
+#include <locale>
 #include <vector>
 #include <algorithm>
 
@@ -213,6 +215,16 @@ int main(int argc, char** argv) {
     start = std::chrono::system_clock::now();
     uint64_t secondsElapsed = 0;
 
+    //Get Timestamp for output file name
+    time_t t = time(0);   // get time now
+    struct tm * now = localtime(&t);
+
+    char timestamp [80];
+    strftime (timestamp,80,"/home/turtlebot/catkin_ws/src/mie443_contest2/Group 18 Tags - %c",now);
+
+    //Write File if it doesn't exist yet
+    std::ofstream output(timestamp);
+
     //Fill the nav_coords array
     fillNavCoords(nav_coords, &boxes, offset);
     for(int i =0; i < 10; i++){
@@ -231,14 +243,7 @@ int main(int argc, char** argv) {
     TSPDist = bruteForceTSP(nav_coords, adjMat, startBox, TSPTour);
 
 
-    //Get Timestamp for output file name
-    time_t t = time(0);   // get time now
-    struct tm * now = localtime( & t );
 
-    char timestamp [80];
-    strftime (timestamp,80,"%Y-%m-%d.",now);
-
-    std::ofstream output(timestamp);
     
     //OLD - Initialize output file to write image IDs to
     //std::ofstream output("Group18_BoxIDs.txt");
@@ -325,8 +330,9 @@ int main(int argc, char** argv) {
                     //Discovery Order; Tag ID; Location Coordinates; Is Duplicate;
                     bool duplicate_check;
                     duplicate_check = ifDuplicate(IDHistory, template_id);
-                    output << "Box: " << " Tag: " << template_id << duplicate_check << std::endl;
-                    //"Located at: (" << boxes.coords[i][0] << ", " << boxes.coords[i][1] << ", " << boxes.coords[i][2] <<  ")"
+                    output << "Box: " << currentNode << " Tag: " << template_id << " Is Duplicate: " << duplicate_check 
+                    << " Located at: (" << boxes.coords[TSPTour[currentNode]][0] << ", " << boxes.coords[TSPTour[currentNode]][1] << ", " << boxes.coords[TSPTour[currentNode]][2] <<  ")"
+                    << std::endl;
                     
 
                 }
