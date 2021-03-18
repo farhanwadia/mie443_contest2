@@ -25,7 +25,7 @@ roslaunch turtlebot_rviz_launchers view_navigation.launch
 ```bash
 rosrun mie443_contest2 contest2
 ```
-6. At the end of the contest, open the file called `Group 18 Tags - YYYY-MM-DD HH-MM-SS.csv` that was created by the contest code. The file will be located in the `mie443_contest2/` directory. 
+6. At the end of the contest, open the file called `Group 18 Tags - YYYY-MM-DD HH-MM-SS.csv` that was created by the contest code. The file will be located in the `/catkin_ws/src/mie443_contest2/` directory. 
 The file can be opened using gedit, or imported as a spreadsheet using LibreOffice. Rows are appended to the file after discovering each box rather than all at the end. An example of what the file would look like after discovering the first box in the practice environment is given below: 
 ```bash
 "Order Visited", "Box ID", "Tag File", "Discovered as Duplicate", "Location (x, y, angle)"
