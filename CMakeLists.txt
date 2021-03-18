@@ -30,7 +30,8 @@ add_executable(contest2
 target_link_libraries(contest2 
     ${catkin_LIBRARIES}  
     ${OpenCV_LIBRARIES}  
-    orocos-kdl)
+    orocos-kdl
+    stdc++fs)
 
 # Webcam Publisher Executable
 add_executable(webcam_publisher 

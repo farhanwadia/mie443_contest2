@@ -6,6 +6,7 @@
 #include <nav_msgs/GetPlan.h>
 #include <iostream>
 #include <fstream>
+#include <experimental/filesystem>
 #include <ctime>
 #include <locale>
 #include <vector>
@@ -235,8 +236,8 @@ int main(int argc, char** argv) {
     char timestamp [150];
     strftime (timestamp, 150,"%Y-%m-%d %H-%M-%S", now);
     timeStr = std::string(timestamp);
-    filename = "/mie443_contest2/Group 18 Output - " + timeStr + ".csv";
-
+    filename = std::experimental::filesystem::current_path() + "/src/mie443_contest2/Group 18 Output - " + timeStr + ".csv";
+    ROS_INFO_STREAM(filename);
     //Write output file if it doesn't exist yet with headers
     std::ofstream output(filename);
     output << "\"Order Visited\"" << ", " << "\"Box ID\"" << ", " << "\"Tag File\"" << ", " 
