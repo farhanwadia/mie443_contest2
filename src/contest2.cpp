@@ -215,28 +215,31 @@ int main(int argc, char** argv) {
     // Initialize image object and subscriber.
     ImagePipeline imagePipeline(n);
 
-
     float adjMat[10][10];
     float nav_coords[10][3];
     int startBox, currentNode = 0, template_id;
     float xx, yy, zz, dz, offset = 0.4, TSPDist;
     bool nav_success, valid_plan, duplicate_check = false;
     std::vector<int> TSPTour, IDHistory;
+    std::string duplicateText, filename, timeStr;
 
     //Contest count down timer
     std::chrono::time_point<std::chrono::system_clock> start;
     start = std::chrono::system_clock::now();
     uint64_t secondsElapsed = 0;
 
-    //Get Timestamp for output file name
+    //Get timestamp for output file name
     time_t t = time(0);   // get time now
     struct tm * now = localtime(&t);
 
-    char timestamp [80];
-    strftime (timestamp,80,"/home/turtlebot/catkin_ws/src/mie443_contest2/Group 18 Tags - %c",now);
+    char timestamp [150];
+    strftime (timestamp, 150,"%Y-%m-%d %H-%M-%S", now);
+    timeStr = std::string(timestamp);
+    filename = "/home/turtlebot/catkin_ws/src/mie443_contest2/Group 18 Output - " + timeStr + ".csv";
 
-    //Write File if it doesn't exist yet
-    std::ofstream output(timestamp);
+    //Write output file if it doesn't exist yet with headers
+    std::ofstream output(filename);
+    output << "\"Order Visited\"" << ", " << "\"Box ID\"" << ", " << "\"Tag File\"" << ", " << "\"Discovered as Duplicate\"" << ", " << "\"Location\"" << std::endl;
 
     //Fill the nav_coords array
     fillNavCoords(nav_coords, &boxes, offset);
@@ -255,18 +258,7 @@ int main(int argc, char** argv) {
     //Brute Force TSP. TSPTour is the path corresponding to the 10 node TSP cycle
     TSPDist = bruteForceTSP(nav_coords, adjMat, startBox, TSPTour);
     
-    //OLD - Initialize output file to write image IDs to
-    //std::ofstream output("Group18_BoxIDs.txt");
-
     //Execute strategy.
-
-    //File to write image tag
-    std::ofstream BoxIDs("BoxIDs.txt");
-
-
-    // Initialize image object and subscriber.
-    //ImagePipeline imagePipeline(n);
-    // Execute strategy.
     while(ros::ok() && secondsElapsed <= 480) {
         ros::spinOnce();
         /***YOUR CODE HERE***/
@@ -318,65 +310,37 @@ int main(int argc, char** argv) {
             if (valid_plan){
                 nav_success = Navigation::moveToGoal(xx, yy, zz);
                 ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
-                if(nav_success){
+                if(nav_success && currentNode < 10){
                     //Add wait time to ensure correct image capture
                     ros::Duration(0.10).sleep();
                     ros::spinOnce();
                     ros::Duration(0.60).sleep();
                     ros::spinOnce();
                     
-                    //Check what the image is and write to file here
+                    int template_id = imagePipeline.getTemplateID(boxes);
+                    ROS_INFO_STREAM("Match: " << tagIndexToString(template_id));
 
-                    //Farhan old
-                    //ros::spinOnce();
-                    //template_id = imagePipeline.getTemplateID(boxes);
-                    
-                    //ROS_INFO_STREAM("Match: " << tagIndexToString(template_id));
-                    
-                    //duplicate_check = isDuplicate(IDHistory, template_id);
+                    duplicate_check = isDuplicate(IDHistory, template_id);
 
                     //Append template_id to a vector called IDHistory if not already there
-                    //if (duplicate_check){
-
-                    //}
-                    //else{
-                    //    IDHistory.push_back(template_id);
-                    //    ROS_INFO("Appended %i to IDHistory", template_id);
-                    //}
-                    
-                   
-                    auto template_id = imagePipeline.getTemplateID(boxes);
-
-                    //Append template_id to a vector called IDHistory
-                    std::vector<int> IDHistory;
-                    IDHistory.push_back(template_id);
-                    ROS_INFO("Appended %i to IDHistory", template_id);
-
-
-                    //Check if new templateID is a duplicate of a previous one
-                
-
-                    //Write to output file 
-                    //Discovery Order; Tag ID; Location Coordinates; Is Duplicate;
-                    bool duplicate_check;
-
-                    //Farhan old
-                    //duplicate_check = isDuplicate(IDHistory, template_id);
-                    //output << "Box: " << " Tag: " << template_id << duplicate_check << std::endl;
-                    ////"Located at: (" << boxes.coords[i][0] << ", " << boxes.coords[i][1] << ", " << boxes.coords[i][2] <<  ")"
-                    
- 
-                    ////auto best = imagePipeline.getTemplateID(boxes);
-                    ////BoxIDs << best << std::endl;
-
-                    duplicate_check = ifDuplicate(IDHistory, template_id);
-                    output << "Box: " << currentNode << " Tag: " << template_id << " Is Duplicate: " << duplicate_check 
-                    << " Located at: (" << boxes.coords[TSPTour[currentNode]][0] << ", " << boxes.coords[TSPTour[currentNode]][1] << ", " << boxes.coords[TSPTour[currentNode]][2] <<  ")"
+                    if(duplicate_check){
+                        duplicateText = "True";
+                    }
+                    else{
+                        IDHistory.push_back(template_id);
+                        ROS_INFO("Appended %i to IDHistory", template_id);
+                        duplicateText = "False";
+                    }
+                    //Discovery Order; Box #; Tag ID; Is Duplicate; Location Coordinates;
+                    ROS_INFO("Appending to output file");
+                    output << "\"" << currentNode+1 << "\", \"" << TSPTour[currentNode] << "\", \"" << tagIndexToString(template_id) << "\", \"" << duplicateText << "\", \"" << "("
+                    << boxes.coords[TSPTour[currentNode]][0] << ", " << boxes.coords[TSPTour[currentNode]][1] << ", " << boxes.coords[TSPTour[currentNode]][2] <<  ")" << "\""
                     << std::endl;
-           
                 }
                 else{
-                    ROS_INFO("PLAN VALID BUT NAVIGATION FAILED");
+                    if(currentNode < 10){
+                        ROS_INFO("PLAN VALID BUT NAVIGATION FAILED");
+                    }
                 }
             }
             if (fabs(dz) > DEG2RAD(61) || !valid_plan){
@@ -390,19 +354,7 @@ int main(int argc, char** argv) {
             //Explored all 10 nodes and returned to start
             break;
         }
-        
-        //To-do: Output to file
-        //File should contain the tag ID (1-15, perhaps -1 for the blank one), the location of the tag, as well as if it is a duplicate
-        // Location should be given as index followed by (x,y, angle)
-        //http://cplusplus.com/doc/tutorial/files/
-        //Discovery Order; Tag ID; Location Index; Location Coordinates; Is Duplicate;
-
-
-        // Write index and tag to output file. Note: ind and tag current placeholders
-        // output << "Box: " << ind << " Tag: " << tag << std::endl;
-    	// output << "Located at: (" << boxes.coords[ind-1][0] << ", " << boxes.coords[ind-1][1] << ", " << boxes.coords[ind-1][2] <<  ")" << std::endl;
-    		
-
+          		
         secondsElapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now()-start).count();
         ros::Duration(0.01).sleep();
     }

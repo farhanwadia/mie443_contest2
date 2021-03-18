@@ -51,35 +51,7 @@ double ImagePipeline::matchToTemplate(Mat img_object){
             good_matches.push_back(knn_matches[i][0]);
         }
     }
-    
-    /***
-    // Min distance filter
-    //-- Step 3: Matching descriptor vectors using FLANN matcher
-    FlannBasedMatcher matcher;
-    std::vector< DMatch > matches;
-    matcher.match( descriptors_object, descriptors_scene, matches );
-
-    //min_dist filter
-     double max_dist = 0; double min_dist = 100;
-     
-     //-- Quick calculation of max and min distances between keypoints
-     for( int i = 0; i < descriptors_object.rows; i++ )
-     { double dist = matches[i].distance;
-     if( dist < min_dist ) min_dist = dist;
-     if( dist > max_dist ) max_dist = dist;
-     }
-     
-     printf("-- Max dist : %f \n", max_dist );
-     printf("-- Min dist : %f \n", min_dist );
-     
-     //-- Draw only "good" matches (i.e. whose distance is less than 3*min_dist )
-     std::vector< DMatch > good_matches;
-     for( int i = 0; i < descriptors_object.rows; i++ )
-     { if( matches[i].distance < 3*min_dist )
-        {good_matches.push_back( matches[i]); }
-     }
-     ***/
-    
+        
     Mat img_matches;
 
     //-- Localize the object
@@ -170,15 +142,6 @@ int ImagePipeline::getTemplateID(Boxes& boxes) {
         std::cout << "img.cols:" << img.cols << std::endl;
     } 
     else {
-        // Code for saving the images
-        // std::string time = std::to_string((int)ros::Time::now().toSec());
-        // std::string name = "/home/turtlebot/images/" + time +".jpg";
-        // std::cout << name << std::endl;
-        //imwrite( name,  img );
-
-        cv::imshow("view", img);
-        cv::waitKey(1000);
-
         // Records the best match, also if all matches less than this value, then probably blank
         best_matches = 25;
         template_id = -1;
