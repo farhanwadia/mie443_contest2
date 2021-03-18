@@ -237,7 +237,7 @@ int main(int argc, char** argv) {
     strftime (timestamp, 150,"%Y-%m-%d %H-%M-%S", now);
     timeStr = std::string(timestamp);
     filename = std::experimental::filesystem::current_path() + "/src/mie443_contest2/Group 18 Output - " + timeStr + ".csv";
-    ROS_INFO_STREAM(filename);
+    
     //Write output file if it doesn't exist yet with headers
     std::ofstream output(filename);
     output << "\"Order Visited\"" << ", " << "\"Box ID\"" << ", " << "\"Tag File\"" << ", " 
