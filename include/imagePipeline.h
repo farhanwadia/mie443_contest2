@@ -28,5 +28,5 @@ class ImagePipeline {
         ImagePipeline(ros::NodeHandle& n);
         void imageCallback(const sensor_msgs::ImageConstPtr& msg);
         int getTemplateID(Boxes& boxes);
-        double matchToTemplate(Mat img_object);
+        int matchToTemplate(Mat img_object);
 };

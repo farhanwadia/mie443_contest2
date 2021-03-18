@@ -23,38 +23,31 @@ void ImagePipeline::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
         isValid = false;
     }    
 }
-
 double ImagePipeline::matchToTemplate(Mat img_object){
     //convert image to grayscale
     cv::Mat gray_img;
     cv::cvtColor(img, gray_img, cv::COLOR_BGR2GRAY);
     
-    
     //--Step 1 & 2: Detect the keypoints and calculate descriptors using SURF Detector
     int minHessian = 400;
     Ptr<SURF> detector = SURF::create(minHessian);
-    std::vector<KeyPoint>keypoints_object,keypoints_scene;
+    std::vector<KeyPoint>keypoints_object, keypoints_scene;
     Mat descriptors_object, descriptors_scene;
-
     detector->detectAndCompute(img_object, Mat(), keypoints_object, descriptors_object);
     //detector->detectAndCompute(img, Mat(), keypoints_scene, descriptors_scene);
     detector->detectAndCompute(gray_img, Mat(), keypoints_scene, descriptors_scene);
 
     //Lowe's ratio filer
     //-- Step 3: Matching descriptor vectors using FLANN matcher
-    Ptr<DescriptorMatcher> matcher =
-    DescriptorMatcher::create(DescriptorMatcher::FLANNBASED);
+    Ptr<DescriptorMatcher> matcher = DescriptorMatcher::create(DescriptorMatcher::FLANNBASED);
     std::vector< std::vector<DMatch> > knn_matches;
     matcher->knnMatch( descriptors_object, descriptors_scene, knn_matches, 2 );
-    
 
     //-- Filter matches using the Lowe's ratio test
     const float ratio_thresh = 0.75f;
-
     std::vector<DMatch> good_matches;
     for (size_t i = 0; i < knn_matches.size(); i++) {
-        if (knn_matches[i][0].distance < ratio_thresh *
-        knn_matches[i][1].distance){
+        if (knn_matches[i][0].distance < ratio_thresh * knn_matches[i][1].distance){
             good_matches.push_back(knn_matches[i][0]);
         }
     }
@@ -166,88 +159,44 @@ double ImagePipeline::matchToTemplate(Mat img_object){
 
 int ImagePipeline::getTemplateID(Boxes& boxes) {
     int template_id = -1;
+    double best_matches, matches;
     if(!isValid) {
         std::cout << "ERROR: INVALID IMAGE!" << std::endl;
-    } else if(img.empty() || img.rows <= 0 || img.cols <= 0) {
+    } 
+    else if(img.empty() || img.rows <= 0 || img.cols <= 0) {
         std::cout << "ERROR: VALID IMAGE, BUT STILL A PROBLEM EXISTS!" << std::endl;
         std::cout << "img.empty():" << img.empty() << std::endl;
         std::cout << "img.rows:" << img.rows << std::endl;
         std::cout << "img.cols:" << img.cols << std::endl;
-    } else {
-
+    } 
+    else {
         // Code for saving the images
         // std::string time = std::to_string((int)ros::Time::now().toSec());
         // std::string name = "/home/turtlebot/images/" + time +".jpg";
         // std::cout << name << std::endl;
         //imwrite( name,  img );
 
-        // Records the best match, also if all matches less than this value, then probably blank
-        double best_matches = 25;
+        cv::imshow("view", img);
+        cv::waitKey(1000);
 
-        // For each box templates
+        // Records the best match, also if all matches less than this value, then probably blank
+        best_matches = 25;
+        template_id = -1;
+
+        // For each box template
         for (int i = 0; i < boxes.templates.size(); ++i)
         {
-            // Match each box to the template
-            double matches = matchToTemplate(boxes.templates[i]);
+            // Get the number of matches between the view and current box template
+            matches = matchToTemplate(boxes.templates[i]);
+            std::cout  << matches << " matching features for template " << i << std::endl;
 
-            switch(i){
-                case 0 : std::cout << "tag_1 ";
-                break;
-
-                case 1 : std::cout << "tag_2 ";
-                break;
-
-                case 2 : std::cout << "tag_3 ";
-                break;
-
-                case 3 : std::cout << "tag_4 ";
-                break;
-
-                case 4 : std::cout << "tag_5 ";
-                break;
-
-                case 5 : std::cout << "tag_6 ";
-                break;
-
-                case 6 : std::cout << "tag_7 ";
-                break;
-
-                case 7 : std::cout << "tag_8 ";
-                break;
-
-                case 8 : std::cout << "tag_9 ";
-                break;
-
-                case 9 : std::cout << "tag_10 ";
-                break;
-
-                case 10 : std::cout << "tag_11 ";
-                break;
-
-                case 11 : std::cout << "tag_12 ";
-                break;
-
-                case 12 : std::cout << "tag_13 ";
-                break;
-
-                case 13 : std::cout << "tag_14 ";
-                break;
-
-                case 14 : std::cout << "tag_15 ";
-                break;
-
-            }
-            std::cout  << " matched:  " << matches << std::endl;
-
-            // Heuristics for classification
+            // Save the maximum matches and corresponding box index
             if (matches > best_matches){
                 best_matches = matches;
                 template_id = i;
-            }
-                
+            } 
         }
     }
-
     // Get grayscale image
     cv::Mat gray_img;
     cv::cvtColor(img, gray_img, cv::COLOR_BGR2GRAY);
@@ -255,6 +204,7 @@ int ImagePipeline::getTemplateID(Boxes& boxes) {
     // For displaying the image
     cv::imshow("view", gray_img);
     cv::waitKey(1000);
-    std::cout  << "best id:  " << template_id << std::endl;
+    std::cout  << "Best template is  " << template_id << " with " << best_matches << " matches" << std::endl;
+
     return template_id;
 }
