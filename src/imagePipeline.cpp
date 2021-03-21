@@ -26,7 +26,8 @@ void ImagePipeline::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
 double ImagePipeline::matchToTemplate(Mat img_object){
     //convert image to grayscale
     cv::Mat gray_img;
-    cv::cvtColor(img, gray_img, cv::COLOR_BGR2GRAY);
+    cv::cvtColor(img, gray_img, cv::COLOR_BGR2GRAY); // Convert scene image to greyscale to improve accuracy
+    cv::resize(img_object, img_object, cv::Size(500,400)); // Resize tag image to match scene aspect ratio
     
     //--Step 1 & 2: Detect the keypoints and calculate descriptors using SURF Detector
     int minHessian = 400;
@@ -34,7 +35,6 @@ double ImagePipeline::matchToTemplate(Mat img_object){
     std::vector<KeyPoint>keypoints_object, keypoints_scene;
     Mat descriptors_object, descriptors_scene;
     detector->detectAndCompute(img_object, Mat(), keypoints_object, descriptors_object);
-    //detector->detectAndCompute(img, Mat(), keypoints_scene, descriptors_scene);
     detector->detectAndCompute(gray_img, Mat(), keypoints_scene, descriptors_scene);
 
     //Lowe's ratio filer
@@ -111,6 +111,8 @@ double ImagePipeline::matchToTemplate(Mat img_object){
         if(indicator >= 0) best_matches.push_back( good_matches[i]);
     }
     
+    /***
+    // -- Draw detected matches- DON'T NEED NOW
     drawMatches( img_object, keypoints_object, gray_img, keypoints_scene,
                  best_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
                  std::vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
@@ -123,10 +125,11 @@ double ImagePipeline::matchToTemplate(Mat img_object){
     
     //-- Show detected matches - DON'T NEED NOW
     //imshow( "Good Matches & Object detection", img_matches );
+    ***/
+   
     cv::waitKey(10);
 
     return (double)best_matches.size()*area_weight;
-    //return (double)good_matches.size();
 }
 
 int ImagePipeline::getTemplateID(Boxes& boxes) {
@@ -143,7 +146,7 @@ int ImagePipeline::getTemplateID(Boxes& boxes) {
     } 
     else {
         // Records the best match, also if all matches less than this value, then probably blank
-        best_matches = 25;
+        best_matches = 50;
         template_id = -1;
 
         // For each box template
