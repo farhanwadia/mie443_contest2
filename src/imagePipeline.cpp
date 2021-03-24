@@ -23,6 +23,7 @@ void ImagePipeline::imageCallback(const sensor_msgs::ImageConstPtr& msg) {
         isValid = false;
     }    
 }
+
 double ImagePipeline::matchToTemplate(Mat img_object){
     //convert image to grayscale
     cv::Mat gray_img;
@@ -51,8 +52,6 @@ double ImagePipeline::matchToTemplate(Mat img_object){
             good_matches.push_back(knn_matches[i][0]);
         }
     }
-        
-    Mat img_matches;
 
     //-- Localize the object
     std::vector<Point2f> obj;
@@ -82,7 +81,7 @@ double ImagePipeline::matchToTemplate(Mat img_object){
         ;
     }
 
-    // Define a contour using the scene_corners
+    // Define contour using the scene_corners
     std::vector<Point2f> contour;
     for (int i = 0; i < 4; i++){
 	    contour.push_back(scene_corners[i] + Point2f( img_object.cols, 0));
@@ -102,7 +101,7 @@ double ImagePipeline::matchToTemplate(Mat img_object){
     double indicator;
     std::vector< DMatch > best_matches;
 
-    // Check if the good match is inside the contour.
+    // Check if the good match is inside the contour. If so, write in best_matches and multiply by area weight
     Point2f matched_point;
     for( int i = 0; i < good_matches.size(); i++ )
     {
@@ -110,22 +109,6 @@ double ImagePipeline::matchToTemplate(Mat img_object){
         indicator = pointPolygonTest(contour, matched_point, false);
         if(indicator >= 0) best_matches.push_back( good_matches[i]);
     }
-    
-    /***
-    // -- Draw detected matches- DON'T NEED NOW
-    drawMatches( img_object, keypoints_object, gray_img, keypoints_scene,
-                 best_matches, img_matches, Scalar::all(-1), Scalar::all(-1),
-                 std::vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
-
-    //-- Draw lines between the corners (the mapped object in the scene - image_2 )
-    line( img_matches, scene_corners[0] + Point2f( img_object.cols, 0), scene_corners[1] + Point2f( img_object.cols, 0), Scalar( 0, 255, 0), 4 );
-    line( img_matches, scene_corners[1] + Point2f( img_object.cols, 0), scene_corners[2] + Point2f( img_object.cols, 0), Scalar( 0, 255, 0), 4 );
-    line( img_matches, scene_corners[2] + Point2f( img_object.cols, 0), scene_corners[3] + Point2f( img_object.cols, 0), Scalar( 0, 255, 0), 4 );
-    line( img_matches, scene_corners[3] + Point2f( img_object.cols, 0), scene_corners[0] + Point2f( img_object.cols, 0), Scalar( 0, 255, 0), 4 );
-    
-    //-- Show detected matches - DON'T NEED NOW
-    //imshow( "Good Matches & Object detection", img_matches );
-    ***/
    
     cv::waitKey(10);
 
@@ -145,14 +128,14 @@ int ImagePipeline::getTemplateID(Boxes& boxes) {
         std::cout << "img.cols:" << img.cols << std::endl;
     } 
     else {
-        // Records the best match, also if all matches less than this value, then probably blank
+        // Initialize best match counter. If less than 50, it is likely to be blank
         best_matches = 50;
         template_id = -1;
 
-        // For each box template
+        // Test against each box template
         for (int i = 0; i < boxes.templates.size(); ++i)
         {
-            // Get the number of matches between the view and current box template
+            // Get the number of matches between the scene and box template
             matches = matchToTemplate(boxes.templates[i]);
             std::cout  << matches << " matching features for template " << i << std::endl;
 
@@ -163,11 +146,11 @@ int ImagePipeline::getTemplateID(Boxes& boxes) {
             } 
         }
     }
-    // Get grayscale image
+    // Get grayscale image to view in RVIZ
     cv::Mat gray_img;
     cv::cvtColor(img, gray_img, cv::COLOR_BGR2GRAY);
     
-    // For displaying the image
+    // Display the scene image
     cv::imshow("view", gray_img);
     cv::waitKey(1000);
     std::cout  << "Best template is  " << template_id << " with " << best_matches << " matches" << std::endl;
