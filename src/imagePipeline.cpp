@@ -128,8 +128,8 @@ int ImagePipeline::getTemplateID(Boxes& boxes) {
         std::cout << "img.cols:" << img.cols << std::endl;
     } 
     else {
-        // Initialize best match counter. If less than 50, it is likely to be blank
-        best_matches = 50;
+        // Initialize best match counter. If less than 35, it is likely to be blank
+        best_matches = 35;
         template_id = -1;
 
         // Test against each box template

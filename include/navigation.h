@@ -3,5 +3,5 @@
 
 class Navigation {
 	public:
-		static bool moveToGoal(float xGoal, float yGoal, float phiGoal);
+		static bool moveToGoal(float xGoal, float yGoal, float phiGoal, float timeout);
 };

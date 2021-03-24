@@ -310,7 +310,7 @@ int main(int argc, char** argv) {
 
             //Navigate if the path plan is valid
             if (valid_plan){
-                nav_success = Navigation::moveToGoal(xx, yy, zz);
+                nav_success = Navigation::moveToGoal(xx, yy, zz, 30.0);
                 ROS_INFO("Finshed moving. Nav Status: %d", nav_success);
                 if(nav_success && currentNode < 10){
                     //Add wait time to ensure correct image capture
